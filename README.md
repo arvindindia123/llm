@@ -80,3 +80,95 @@ Pros: Interactive, dynamic.
 
 Cons: More complex setup.
 
+Step 1: Install the Required Packages
+bash
+pip install langchain faiss-cpu openai pdfplumber tiktoken sentence-transformers
+Step 2: Extract Text from PDF
+import pdfplumber
+
+def extract_text_from_pdf(pdf_path):
+    text = ""
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            text += page.extract_text() + "\n"
+    return text
+Step 3: Split the Text into Chunks
+python
+Copy
+Edit
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+def split_text(text):
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=500,
+        chunk_overlap=100
+    )
+    return splitter.split_text(text)
+Step 4: Convert Text Chunks into Embeddings
+python
+Copy
+Edit
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import FAISS
+
+def create_vector_store(chunks):
+    embeddings = OpenAIEmbeddings()
+    vectorstore = FAISS.from_texts(chunks, embedding=embeddings)
+    return vectorstore
+🔒 Don't forget to set your OpenAI API Key:
+
+python
+Copy
+Edit
+import os
+os.environ["OPENAI_API_KEY"] = "your-key-here"
+Step 5: Query and Retrieve Relevant Chunks
+python
+Copy
+Edit
+def retrieve_context(vectorstore, query):
+    docs = vectorstore.similarity_search(query, k=3)
+    return "\n".join([doc.page_content for doc in docs])
+Step 6: Feed Context + Query to LLM
+python
+Copy
+Edit
+from langchain.llms import OpenAI
+
+def generate_answer(context, query):
+    prompt = f"""Answer the following question using the context below:
+    
+    Context:
+    {context}
+
+    Question: {query}
+    """
+    llm = OpenAI(temperature=0)
+    return llm(prompt)
+Step 7: Glue Everything Together
+python
+Copy
+Edit
+def answer_custom_query(pdf_path, user_query):
+    text = extract_text_from_pdf(pdf_path)
+    chunks = split_text(text)
+    vectorstore = create_vector_store(chunks)
+    context = retrieve_context(vectorstore, user_query)
+    answer = generate_answer(context, user_query)
+    return answer
+
+# Example usage
+pdf_path = "yourfile.pdf"
+query = "What is the return policy mentioned in the document?"
+print(answer_custom_query(pdf_path, query))
+🔁 Summary Pipeline:
+🗂️ Load your PDFs
+
+✂️ Split into overlapping chunks
+
+🧠 Convert chunks into vector embeddings
+
+🔍 Perform similarity search at query time
+
+🧾 Pass results + query into LLM for answer generation
+

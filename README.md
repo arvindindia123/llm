@@ -172,3 +172,31 @@ print(answer_custom_query(pdf_path, query))
 
 🧾 Pass results + query into LLM for answer generation
 
+--
+Alternative to open AI
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.vectorstores import FAISS
+
+def create_vector_store(chunks):
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    )
+    vectorstore = FAISS.from_texts(chunks, embedding=embeddings)
+    return vectorstore
+
+
+from transformers import pipeline
+
+# Load a lightweight local model for QA
+qa_pipeline = pipeline("text2text-generation", model="google/flan-t5-base")
+
+def generate_answer(context, query):
+    prompt = f"""Answer the question based on the context below.
+
+Context:
+{context}
+
+Question: {query}
+"""
+    result = qa_pipeline(prompt, max_length=256, do_sample=False)
+    return result[0]['generated_text']
